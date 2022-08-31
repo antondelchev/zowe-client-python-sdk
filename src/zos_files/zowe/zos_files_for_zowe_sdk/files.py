@@ -15,6 +15,8 @@ from zowe.core_for_zowe_sdk.exceptions import FileNotFound
 from zowe.zos_files_for_zowe_sdk import exceptions, constants
 import os
 import shutil
+import json
+
 
 _ZOWE_FILES_DEFAULT_ENCODING='utf-8'
 
@@ -484,4 +486,54 @@ class Files(SdkApi):
         custom_args["params"] = {"path":file_path_name, "fsname": file_system_name}
         custom_args["url"] = "{}mfs".format(self.request_endpoint)
         response_json = self.request_handler.perform_request("GET", custom_args, expected_code=[200])
+        return response_json
+
+    def copy_from_dataset(self, dataset_name, member="", volser="", enq="" ,replace=False, alias=False):
+        """Docs"""
+
+        data = {
+            "request": "copy",
+            "from-dataset": {
+                "dsn": dataset_name,
+                "alias": json.dumps(alias),
+            },
+            
+            "replace": json.dumps(replace),
+        }
+
+        if not member == "":
+            data["from-dataset"]["member"] = member
+
+
+        if not volser == "":
+            data["from-dataset"]["volser"] = volser
+        
+        if not enq == "":
+            data["enq"] = enq
+
+        custom_args = self._create_custom_request_arguments()
+        custom_args["json"] = data
+        custom_args["url"] = "{}ds/{}".format(self.request_endpoint, dataset_name)
+
+        response_json = self.request_handler.perform_request("PUT", custom_args, expected_code=[200])
+        return response_json
+
+    def copy_from_file(self, file_name, type="text", replace=False):
+        """Docs"""
+
+        data = {
+            "request": "copy",
+            "from-file": file_name,
+            "type": type,
+
+        }
+
+        if type == "text":
+            data["replace"] = json.dumps(replace)
+
+        custom_args = self._create_custom_request_arguments()
+        custom_args["json"] = data
+        custom_args["url"] = "{}ds/{}".format(self.request_endpoint, file_name)
+
+        response_json = self.request_handler.perform_request("PUT", custom_args, expected_code=[200])
         return response_json
