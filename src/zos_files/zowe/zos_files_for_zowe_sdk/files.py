@@ -344,7 +344,18 @@ class Files(SdkApi):
 
     def upload_file_to_dsn(self, input_file, dataset_name, encoding=_ZOWE_FILES_DEFAULT_ENCODING):
         """Upload contents of a given file and uploads it to a dataset."""
+        windows_line_ending = b'\r\n'
+        unix_line_ending = b'\n'
+
         if os.path.isfile(input_file):
+            with open(input_file, 'rb') as in_file:
+                content = in_file.read()
+
+            content = content.replace(windows_line_ending, unix_line_ending)
+
+            with open(input_file, 'wb') as in_file:
+                in_file.write(content)
+
             with open(input_file, 'rb') as in_file:
                 response_json = self.write_to_dsn(dataset_name, in_file)
         else:
