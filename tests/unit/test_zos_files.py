@@ -79,3 +79,19 @@ class TestFilesClass(TestCase):
 
         Files(self.test_profile).list_unix_file_systems("file_system_name")
         mock_send_request.assert_called_once()
+
+    @mock.patch('requests.Session.send')
+    def test_copy_from_dataset(self, mock_send_request):
+        """Test copying from data set sends a request"""
+        mock_send_request.return_value = mock.Mock(headers={"Content-Type": "application/json"}, status_code=200)
+
+        Files(self.test_profile).copy_from_dataset("MY.OLD.DSN", "MY.NEW.DSN", replace=True)
+        mock_send_request.assert_called_once()
+
+    @mock.patch('requests.Session.send')
+    def test_copy_from_file(self, mock_send_request):
+        """Test copying from file sends a request"""
+        mock_send_request.return_value = mock.Mock(headers={"Content-Type": "application/json"}, status_code=200)
+
+        Files(self.test_profile).copy_from_file("MY.OLD.DSN.INFO", "MY.NEW.DSN.INFO1", type="text", replace=True)
+        mock_send_request.assert_called_once()

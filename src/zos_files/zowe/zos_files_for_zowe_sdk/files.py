@@ -488,8 +488,41 @@ class Files(SdkApi):
         response_json = self.request_handler.perform_request("GET", custom_args, expected_code=[200])
         return response_json
 
-    def copy_from_dataset(self, dataset_name, member="", volser="", enq="" ,replace=False, alias=False):
-        """Docs"""
+    def copy_from_dataset(self, dataset_name, destination_path, member="", volser="", enq="" ,replace=False, alias=False):
+        """
+        Copies the dataset.
+
+        Parameters
+        ----------
+        dataset_name
+            The source data set.
+
+        destination_path
+            Path to the data set or member that the data will be copied to.
+
+        member
+            Specify a "from" member or use "*" to target all members.
+
+        volser
+            Can be specified if dsn is not catalogued.
+
+        enq
+            Enqueue type for the "to" data set.
+            Accepted values: SHR, SHRW or EXCLU.
+        
+        replace
+            If True, members in the target data set are replaced.
+            False returns an error and like named members are not copied.
+
+        alias
+            If True, aliases are copied along with main member.
+            If False (default), alias relationships are not maintained.
+
+        Returns
+        -------
+        json
+            A JSON containing the result of the operation
+        """
 
         data = {
             "request": "copy",
@@ -497,35 +530,64 @@ class Files(SdkApi):
                 "dsn": dataset_name,
                 "alias": json.dumps(alias),
             },
-            
             "replace": json.dumps(replace),
         }
 
         if not member == "":
             data["from-dataset"]["member"] = member
 
-
         if not volser == "":
             data["from-dataset"]["volser"] = volser
         
         if not enq == "":
+            if enq not in ("SHR", "SHRW", "EXCLU"):
+                raise KeyError
             data["enq"] = enq
 
         custom_args = self._create_custom_request_arguments()
         custom_args["json"] = data
-        custom_args["url"] = "{}ds/{}".format(self.request_endpoint, dataset_name)
+        custom_args["url"] = "{}ds/{}".format(self.request_endpoint, destination_path)
+        if not volser == "":
+            custom_args["url"] = "{}ds/-({})/{}".format(self.request_endpoint, volser, destination_path)
 
         response_json = self.request_handler.perform_request("PUT", custom_args, expected_code=[200])
         return response_json
 
-    def copy_from_file(self, file_name, type="text", replace=False):
-        """Docs"""
+    def copy_from_file(self, file_name, destination_path, type="text", replace=False):
+        """
+        Copies the file.
+
+        Parameters
+        ----------
+        file_name
+            The absolute source file name.
+
+        destination_path
+            Path to the file that the data will be copied to.
+
+        type
+            One of "binary", "executable" or "text". Default is "text".
+
+        replace
+            Only applicable if type = "text". If True, members in the target data set are replaced.
+            False returns an error and like named members are not copied.
+
+
+        Returns
+        -------
+        json
+            A JSON containing the result of the operation
+        """
+
+        if type not in ("binary", "executable", "text"):
+            raise KeyError
 
         data = {
             "request": "copy",
-            "from-file": file_name,
-            "type": type,
-
+            "from-file": {
+                "filename": file_name,
+                "type": type,
+            }
         }
 
         if type == "text":
@@ -533,7 +595,7 @@ class Files(SdkApi):
 
         custom_args = self._create_custom_request_arguments()
         custom_args["json"] = data
-        custom_args["url"] = "{}ds/{}".format(self.request_endpoint, file_name)
+        custom_args["url"] = "{}ds/{}".format(self.request_endpoint, destination_path)
 
         response_json = self.request_handler.perform_request("PUT", custom_args, expected_code=[200])
         return response_json
