@@ -488,42 +488,40 @@ class Files(SdkApi):
         response_json = self.request_handler.perform_request("GET", custom_args, expected_code=[200])
         return response_json
 
-    def copy_from_dataset(self, dataset_name, destination_path, member="", volser="", enq="" ,replace=False, alias=False):
+    def copy_from_dataset(self, dataset_name: str, destination_path: str, member="", volser="", enq="" ,replace=False, alias=False):
         """
         Copies the dataset.
 
         Parameters
         ----------
-        dataset_name
+        dataset_name: str
             The source data set.
 
-        destination_path
+        destination_path: str
             Path to the data set or member that the data will be copied to.
 
-        member
+        member: str
             Specify a "from" member or use "*" to target all members.
 
-        volser
-            Can be specified if dsn is not catalogued.
+        volser: str
+            Volume serial. Can be specified if dsn is not catalogued.
 
-        enq
+        enq: str
             Enqueue type for the "to" data set.
             Accepted values: SHR, SHRW or EXCLU.
         
-        replace
+        replace: bool
             If True, members in the target data set are replaced.
             False returns an error and like named members are not copied.
 
-        alias
+        alias: bool
             If True, aliases are copied along with main member.
             If False (default), alias relationships are not maintained.
 
         Returns
         -------
-        json
-            A JSON containing the result of the operation
+        json - A JSON containing the result of the operation
         """
-
         data = {
             "request": "copy",
             "from-dataset": {
@@ -533,55 +531,56 @@ class Files(SdkApi):
             "replace": json.dumps(replace),
         }
 
-        if not member == "":
+        if member:
             data["from-dataset"]["member"] = member
+            destination_path += "({})".format(member)
 
-        if not volser == "":
+        if volser:
             data["from-dataset"]["volser"] = volser
         
-        if not enq == "":
-            if enq not in ("SHR", "SHRW", "EXCLU"):
-                raise KeyError
-            data["enq"] = enq
+        if enq:
+            if enq in ("SHR", "SHRW", "EXCLU"):
+                data["enq"] = enq
+            else:
+                raise ValueError("Invalid value for enq.")
 
         custom_args = self._create_custom_request_arguments()
         custom_args["json"] = data
-        custom_args["url"] = "{}ds/{}".format(self.request_endpoint, destination_path)
-        if not volser == "":
+        if volser:
             custom_args["url"] = "{}ds/-({})/{}".format(self.request_endpoint, volser, destination_path)
+        else:
+            custom_args["url"] = "{}ds/{}".format(self.request_endpoint, destination_path)
 
         response_json = self.request_handler.perform_request("PUT", custom_args, expected_code=[200])
         return response_json
 
-    def copy_from_file(self, file_name, destination_path, type="text", replace=False):
+    def copy_from_file(self, file_name: str, destination_path: str, type="text", replace=False):
         """
         Copies the file.
 
         Parameters
         ----------
-        file_name
+        file_name: str
             The absolute source file name.
 
-        destination_path
+        destination_path: str
             Path to the file that the data will be copied to.
 
-        type
+        type: str
             One of "binary", "executable" or "text". Default is "text".
 
-        replace
+        replace: bool
             Only applicable if type = "text". If True, members in the target data set are replaced.
             False returns an error and like named members are not copied.
 
-
         Returns
         -------
-        json
-            A JSON containing the result of the operation
+        json - A JSON containing the result of the operation
         """
 
         if type not in ("binary", "executable", "text"):
-            raise KeyError
-
+            raise ValueError("Invalid value for type.")
+        
         data = {
             "request": "copy",
             "from-file": {
